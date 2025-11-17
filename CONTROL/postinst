@@ -1,0 +1,20 @@
+#!/bin/sh
+
+echo "Stopping dbus-ble-sensors service"
+if [ -n "$(ls /sys/class/bluetooth)" ]; then
+    svc -d /service/dbus-ble-sensors
+fi
+
+echo "Modifying ble services autostart scripts"
+sed -i 's|/service/dbus-ble-sensors |/service/dbus-ble-sensors-py |g' /lib/udev/bt-config
+sed -i 's|/service/dbus-ble-sensors$|/service/dbus-ble-sensors-py|g' /lib/udev/bt-remove
+
+echo "Starting dbus-ble-sensors-py service"
+ln -s /opt/victronenergy/service/dbus-ble-sensors-py /service/dbus-ble-sensors-py
+if [ -n "$(ls /sys/class/bluetooth)" ]; then
+    while [ ! -e /service/dbus-ble-sensors-py/supervise/control ]; do
+    echo "Waiting for /service/dbus-ble-sensors-py supervise to be ready..."
+        sleep 1
+    done
+    svc -u /service/dbus-ble-sensors-py
+fi
