@@ -1,0 +1,8 @@
+**/__pycache__/
+.git/
+*.iml
+.idea/
+*.code-workspace
+.gitignore
+LICENSE
+README.md

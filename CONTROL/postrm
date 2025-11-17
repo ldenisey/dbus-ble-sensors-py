@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo "Stopping ble services"
+/lib/udev/bt-remove
+
+echo "Modifying ble services autostart scripts"
+sed -i 's|/service/dbus-ble-sensors-py |/service/dbus-ble-sensors |g' /lib/udev/bt-config
+sed -i 's|/service/dbus-ble-sensors-py$|/service/dbus-ble-sensors|g' /lib/udev/bt-remove
+
+echo "Starting ble services"
+/lib/udev/bt-config
