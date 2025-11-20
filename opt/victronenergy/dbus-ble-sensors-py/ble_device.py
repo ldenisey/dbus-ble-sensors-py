@@ -12,7 +12,7 @@ from ble_role import BleRole
 
 class BleDevice(object):
 
-    _ALLOWED_TYPES = [dbus.type.Boolean, dbus.types.Byte, dbus.types.Int16, dbus.types.UInt16, dbus.types.Int32,
+    _ALLOWED_TYPES = [dbus.types.Boolean, dbus.types.Byte, dbus.types.Int16, dbus.types.UInt16, dbus.types.Int32,
                       dbus.types.UInt32, dbus.types.Int64, dbus.types.UInt64, dbus.types.Double, dbus.types.String]
 
     _SIGNED_TYPES = [dbus.types.Int16, dbus.types.Int32, dbus.types.Int64]
@@ -205,7 +205,7 @@ class BleDevice(object):
                     raise ValueError(f"{self._plog} Missing key '{key}' in reg {reg['name']}")
             if (reg_type := reg['type']) not in BleDevice._ALLOWED_TYPES:
                 raise ValueError(f"{self._plog} Data type {reg_type} in reg {reg['name']} is not allowed")
-            if reg_type == dbus.type.String:
+            if reg_type == dbus.types.String:
                 if (bits := reg.get('bits', None)) is None:
                     raise ValueError(f"{self._plog} missing 'bits' in reg {reg['name']}")
                 elif not isinstance(bits, int):

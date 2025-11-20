@@ -110,7 +110,7 @@ class DbusBleSensors(object):
             plog = f"{dev_mac} - {dev_name}:"
             logging.debug(f"{plog} received advertisement '{advertisement_data}'")
             if advertisement_data.manufacturer_data is None or len(advertisement_data.manufacturer_data) < 1:
-                logging.info(f"{plog} ignoring device without manufacturer data")
+                logging.info(f"{plog} ignoring, device without manufacturer data")
                 self._ignored_mac.append(dev_mac)
                 return
 
