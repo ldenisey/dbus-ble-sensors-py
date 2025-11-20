@@ -90,7 +90,7 @@ class DbusDeviceService(object):
     def disconnect(self):
         if not self.is_connected():
             return
-        logging.warning(f"{self._ble_device._plog} releasing '{self._service_name}' dbus service")
+        logging.info(f"{self._ble_device._plog} releasing '{self._service_name}' dbus service")
         self._dbus_service._dbusname.__del__()
         self._dbus_service._dbusname = None
 
@@ -115,22 +115,20 @@ class DbusDeviceService(object):
 
     def set_value(self, path: str, value: any):
         clean_path = self._clear_path(path)
-        if (item := self._dbus_service._dbusobjects.get(clean_path, None)) is None:
+        if self._dbus_service._dbusobjects.get(clean_path, None) is None:
+            logging.debug(f"{self._ble_device._plog} creating item {self._service_name}@{clean_path} to {value}")
             self._dbus_service.add_path(clean_path, value, writeable=True)
         else:
+            logging.debug(f"{self._ble_device._plog} setting item {self._service_name}@{clean_path} to {value}")
             self._dbus_service[clean_path] = value
 
     def _get_proxy_callback(self, item_path: str, setting_item: VeDbusItemImport, callback=None) -> any:
         def _callback(path: str, new_value: any):
-            logging.debug(f"{self._ble_device._plog} received update on {self._service_name}@{path}: {new_value}")
             if path != item_path:
                 return 0
             if new_value != setting_item.get_value():
-                logging.debug(
-                    f"{self._ble_device._plog} updating {setting_item.serviceName}@{setting_item.path} to {new_value}")
                 setting_item.set_value(new_value)
             if callback:
-                logging.info("device _get_proxy_callback, calling callback")
                 callback(new_value)
             return 1
         return _callback

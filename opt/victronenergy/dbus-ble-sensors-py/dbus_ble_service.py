@@ -28,7 +28,7 @@ class DbusBleService(object):
 
         # Check and create ble service
         if self._BLE_SERVICENAME in dbus_iface_names:
-            logging.error(f"Service {self._BLE_SERVICENAME} already running, stop it and restart")
+            logging.critical(f"Service {self._BLE_SERVICENAME} already running, stop it and restart")
             sys.exit(1)
         else:
             logging.info(f"Creating dbus service {self._BLE_SERVICENAME} on bus {self._bus}")
@@ -53,7 +53,7 @@ class DbusBleService(object):
     def set_item(self, path: str, value: any, callback=None) -> VeDbusItemExport:
         clean_path = self._clear_path(path)
         if clean_path not in self._paths or self._paths[clean_path] != value:
-            logging.debug(f"Setting item {clean_path} to {value}")
+            logging.debug(f"Setting item {self._BLE_SERVICENAME}@{clean_path} to {value}")
             if self._dbus_service is not None:
                 busitem = self._dbus_service.add_path(clean_path, value, writeable=True, onchangecallback=callback)
             else:
@@ -68,18 +68,16 @@ class DbusBleService(object):
         else:
             result = item.SetValue(new_value)
             if result != 0:
-                logging.error(f"Failed to set '{path}' to '{new_value}'")
+                logging.error(f"Failed to set '{path}' to '{new_value}': result={result}")
 
     def set_event_callback(self, path: str, callback):
         busitem = self._paths[path]._onchangecallback = callback
 
     def set_proxy_callback(self, item_path: str, setting_item: VeDbusItemImport, callback=None):
         def _callback(change_path, new_value):
-            logging.debug(f"Received update on {self._BLE_SERVICENAME}@{change_path}: {new_value}")
             if change_path != item_path:
                 return 0
             if new_value != setting_item.get_value():
-                logging.debug(f"Updating {setting_item.serviceName}@{setting_item.path} to {new_value}")
                 setting_item.set_value(new_value)
             if callback:
                 callback(new_value)

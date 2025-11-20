@@ -55,5 +55,4 @@ class BleRoleTemperature(BleRole):
 
     # def _offset_update_temp(self, new_value):
     def _offset_update_temp(self, _dbus_service, new_value):
-        logging.debug(f"{self._plog} Updating temp from offset: sensor temp:{self._raw_temp}, offset value:{new_value}")
         _dbus_service.set_value('Temperature', self._raw_temp + new_value)

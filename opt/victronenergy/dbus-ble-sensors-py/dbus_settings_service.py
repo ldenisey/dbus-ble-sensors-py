@@ -3,7 +3,7 @@ import os
 import sys
 import dbus
 import logging
-from vedbus import VeDbusItemImport
+from vedbus import VeDbusItemImport, VeDbusItemExport
 
 
 class DbusSettingsService(object):
@@ -67,10 +67,10 @@ class DbusSettingsService(object):
 
     def set_value(self, path, new_value):
         if (setting := self._paths.get(path, None)) is None:
-            logging.warning(f"Can not set value of unexisting {path} to {new_value}.")
+            logging.error(f"Can not set value of unexisting {path} to {new_value}.")
         else:
             if (result := setting.set_value(new_value)) != 0:
-                logging.warning(f"Failed to set setting {path} to {new_value}.")
+                logging.error(f"Failed to set setting {path} to {new_value}, result={result}.")
 
     def set_event_callback(self, path, callback):
         item = self.get_item(path)
@@ -83,12 +83,10 @@ class DbusSettingsService(object):
 
     def set_proxy_callback(self, setting_path: str, remote_item: VeDbusItemExport):
         def _callback(service_name, change_path, changes):
-            logging.debug(f"Received update on {service_name}@{change_path}: {changes}")
             if service_name != DbusSettingsService._SETTINGS_SERVICENAME or change_path != setting_path:
                 return
             new_value = changes['Value']
             if new_value != remote_item.local_get_value():
-                logging.debug(f"Updating remote {remote_item._path} to {new_value}")
                 remote_item.local_set_value(new_value)
         self.set_event_callback(setting_path, _callback)
 

@@ -37,7 +37,6 @@ class BleRole(object):
 
     @staticmethod
     def load_role_classes(execution_path: str):
-        logging.debug("Role classes: loading...")
         role_classes_prefix = f"{os.path.splitext(os.path.basename(__file__))[0]}_"
 
         # Loading manufacturer specific classes
@@ -46,11 +45,9 @@ class BleRole(object):
                 module_name = os.path.splitext(filename)[0]
 
                 # Import the module from file
-                logging.debug(f"Role classes: loading module {module_name} ...")
                 spec = importlib.util.spec_from_file_location(module_name, filename)
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
-                logging.debug(f"Role classes: module {module_name} loaded")
 
                 # Check and import
                 for name, obj in inspect.getmembers(module, inspect.isclass):
@@ -59,7 +56,6 @@ class BleRole(object):
                         instance.check_configuration()
                         BleRole._ROLE_INSTANCE[instance.info['name']] = instance
                         break
-                logging.debug(f"Role classes: class {module_name} instanciated")
         logging.info(f"Role classes: {BleRole._ROLE_INSTANCE}")
 
     def check_configuration(self):
@@ -85,6 +81,9 @@ class BleRole(object):
             for key in ['def', 'min', 'max']:
                 if key not in setting['props']:
                     raise ValueError(f"{self._plog} Missing key '{key}' in setting {setting['name']}")
+            if (onchange := setting.get('onchange', None)):
+                if not hasattr(self, onchange):
+                    raise ValueError(f"{self._plog} Missing method '{onchange}' defined in setting {setting['name']}")
 
         for index, alarm in enumerate(self.info['alarms']):
             if 'name' not in alarm:

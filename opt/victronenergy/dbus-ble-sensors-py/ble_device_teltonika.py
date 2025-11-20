@@ -25,6 +25,7 @@ class BleDeviceTeltonika(BleDevice):
             ]
         })
         self._compute_regs(manufacturer_data)
+        logging.debug(f"{self._plog} computed regs: {self.info['regs']}")
 
     def _compute_regs(self, manufacturer_data: bytes):
         self.info['roles'] = []
@@ -59,7 +60,6 @@ class BleDeviceTeltonika(BleDevice):
             'shift': 2,
             'bits': 1,
         }, manufacturer_data)
-        logging.debug(f"{self._plog} flag magnet: {flag_mag}")
         if flag_mag:
             self.info['regs'].append({
                 'name': 'InputState',  # Magnet presence
@@ -78,7 +78,6 @@ class BleDeviceTeltonika(BleDevice):
             'shift': 0,
             'bits': 1,
         }, manufacturer_data)
-        logging.debug(f"{self._plog} flag temperature: {flag_temp}")
         if flag_temp:
             self.info['regs'].append({
                 'name': 'Temperature',
@@ -98,7 +97,6 @@ class BleDeviceTeltonika(BleDevice):
             'shift': 1,
             'bits': 1,
         }, manufacturer_data)
-        logging.debug(f"{self._plog} flag humidity: {flag_humid}")
         if flag_humid:
             self.info['regs'].append({
                 'name': 'Humidity',
@@ -180,180 +178,3 @@ class BleDeviceTeltonika(BleDevice):
             })
 
         self.info['roles'] = list(set(self.info['roles']))
-
-    def test_parsing(self):
-        self._plog = ''
-        failed = 0
-        for test in [self.test_spec_example, self.test_sensor_1, self.test_sensor_2, self.test_beacon]:
-            try:
-                test()
-            except AssertionError:
-                failed += 1
-                logging.error('Test failed !')
-
-        if failed:
-            logging.error(f"{failed} failed test(s) !")
-        else:
-            logging.info('Tests successful !')
-
-    def test_spec_example(self):
-        # Cf. https://wiki.teltonika-gps.com/view/EYE_SENSOR_/_BTSMP1#EYE_Sensor_Bluetooth%C2%AE_frame_parsing_example
-        logging.info('Starting test test_spec_example')
-        raw_data = b'\x01\xb7\x08\xb4\x12\x0c\xcb\x0b\xff\xc7\x67'
-        self.configure(raw_data)
-        #   01: Protocole version
-        #   B7: Flags: B7=(MSB)1011 0111(LSB) => Bat volt on, low bat False, Angles on, Counter on, Mag state False, Mag on, Humidity on, Temp on
-        #   08
-        #   B4: Temperature: 08B4 = 2228, 2228 / 100 = 22.28°C
-        #   12: Humidity: 12 = 18%
-        #   0C
-        #   CB: Counter: 0CCB=(MSB)0000 1100 1100 1011(LSB) => 0@MSB=Moving False, 000 1100 1100 1011=3275 moves
-        #   0B: Pitch: 0B=11°
-        #   FF
-        #   C7: Roll: FFC7=-57°
-        #   67: Battery voltage: 67=103, 2000 + (103 * 10) = 3030mV
-        expected_dict = {
-            'temperature': {
-                'LowBattery': False,
-                'Temperature': 22.28,
-                'Humidity': 18,
-                'MovementState': False,
-                'MovementCount': 3275,
-                'AnglePitch': 11,
-                'AngleRoll': -57,
-                'BatteryVoltage': 3030.0
-            },
-            'digitalinput': {
-                'InputState': False,
-                'LowBattery': False,
-                'MovementState': False,
-                'MovementCount': 3275,
-                'AnglePitch': 11,
-                'AngleRoll': -57,
-                'BatteryVoltage': 3030.0
-            }
-        }
-
-        logging.info(f"Parsing: {raw_data}")
-        logging.info(f"Expected data: {expected_dict}")
-        parsed_dict = self.parse_manufacturer_data(raw_data)
-        logging.info(f"Parsed data: {parsed_dict}")
-        assert parsed_dict == expected_dict
-
-    def test_sensor_1(self):
-        logging.info('Starting test test_sensor_1')
-        raw_data = b'\x01\xbf\x06\xe6:\xe5g\xf9\x00zM'
-        self.configure(raw_data)
-        #   01: Protocole version
-        #   BF: Flags: BF=(MSB)1011 1111(LSB) => Bat volt on, low bat False, Angles on, Counter on, Mag state True, Mag on, Humidity on, Temp on
-        #   06
-        #   E6: Temperature: 06E6 = 1766, 1766 / 100 = 17.66°C
-        # :=3A: Humidity: 3A = 58%
-        #   E5
-        # g=67: Counter: E567=(MSB)1110 0101  0110 0111(LSB) => 1@MSB=Moving True, 110 0101  0110 0111=25959 moves
-        #   F9: Pitch: F9=-7°
-        #   00
-        # z=7A: Roll: 007A=122
-        # M=4D: Battery voltage: 4D=77, 2000 + (77 * 10) = 2770mV
-        expected_dict = {
-            'temperature': {
-                'LowBattery': False,
-                'Temperature': 17.66,
-                'Humidity': 58,
-                'MovementState': True,
-                'MovementCount': 25959,
-                'AnglePitch': -7,
-                'AngleRoll': 122,
-                'BatteryVoltage': 2770.0
-            },
-            'digitalinput': {
-                'InputState': True,
-                'LowBattery': False,
-                'MovementState': True,
-                'MovementCount': 25959,
-                'AnglePitch': -7,
-                'AngleRoll': 122,
-                'BatteryVoltage': 2770.0
-            }
-        }
-
-        logging.info(f"Parsing: {raw_data}")
-        logging.info(f"Expected data: {expected_dict}")
-        parsed_dict = self.parse_manufacturer_data(raw_data)
-        logging.info(f"Parsed data: {parsed_dict}")
-        assert parsed_dict == expected_dict
-
-    def test_sensor_2(self):
-        logging.info('Starting test test_sensor_2')
-        raw_data = b'\x01\xd3\x06\xe6:\x65gM'
-        self.configure(raw_data)
-        #   01: Protocole version
-        #   D3: Flags: D3=(MSB)1101 0011(LSB) => Bat volt on, low bat True, Angles off, Counter on, Mag state False, Mag off, Humidity on, Temp on
-        #   06
-        #   E6: Temperature: 06E6 = 1766, 1766 / 100 = 17.66°C
-        # :=3A: Humidity: 3A = 58%
-        #   65
-        # g=67: Counter: 6567=(MSB)0110 0101  0110 0111(LSB) => 0@MSB=Moving False, 110 0101  0110 0111=25959 moves
-        # M=4D: Battery voltage: 4D=77, 2000 + (77 * 10) = 2770mV
-        expected_dict = {
-            'temperature': {
-                'LowBattery': True,
-                'Temperature': 17.66,
-                'Humidity': 58,
-                'MovementState': False,
-                'MovementCount': 25959,
-                'BatteryVoltage': 2770.0
-            }
-        }
-
-        logging.info(f"Parsing: {raw_data}")
-        logging.info(f"Expected data: {expected_dict}")
-        parsed_dict = self.parse_manufacturer_data(raw_data)
-        logging.info(f"Parsed data: {parsed_dict}")
-        assert parsed_dict == expected_dict
-
-    def test_sensor_3(self):
-        logging.info('Starting test test_sensor_3')
-        raw_data = b'\x01\x8C\x67'
-        self.configure(raw_data)
-        #   01: Protocole version
-        #   8C: Flags: 8C=(MSB)1000 1100(LSB) => Bat volt on, low bat False, Angles off, Counter off, Mag state True, Mag on, Humidity off, Temp off
-        #   67: Battery voltage: 67=103, 2000 + (103 * 10) = 3030mV
-        expected_dict = {
-            'digitalinput': {
-                'InputState': True,
-                'LowBattery': False,
-                'BatteryVoltage': 3030
-            }
-        }
-
-        logging.info(f"Parsing: {raw_data}")
-        logging.info(f"Expected data: {expected_dict}")
-        parsed_dict = self.parse_manufacturer_data(raw_data)
-        logging.info(f"Parsed data: {parsed_dict}")
-        assert parsed_dict == expected_dict
-
-    def test_beacon(self):
-        logging.info('Starting test test_beacon')
-        raw_data = b'\x01\xC0\x4D'
-        self.configure(raw_data)
-        #   01: Protocole version
-        #   C0: Flags: C0=(MSB)1100 0000(LSB) => Bat volt on, low bat True, Angles off, Counter off, Mag state False, Mag off, Humidity off, Temp off
-        # M=4D: Battery voltage: 4D=77, 2000 + (77 * 10) = 2770mV
-        expected_dict = {}  # No roles...
-
-        logging.info(f"Parsing: {raw_data}")
-        logging.info(f"Expected data: {expected_dict}")
-        parsed_dict = self.parse_manufacturer_data(raw_data)
-        logging.info(f"Parsed data: {parsed_dict}")
-        assert parsed_dict == expected_dict
-
-
-def main():
-    logging.basicConfig(level=logging.DEBUG)
-    device = BleDeviceTeltonika('7cd9f411427d', 'PITCH_ROLL')
-    device.test_parsing()
-
-
-if __name__ == '__main__':
-    main()

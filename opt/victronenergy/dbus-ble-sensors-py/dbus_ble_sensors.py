@@ -23,6 +23,7 @@ class DbusBleSensors(object):
     # Main class for the D-bus BLE Sensors python service. Extend base C service 'dbus-ble-sensors'
     # to allow community integration of unsupported (by Victron Energy team) BLE sensors.
     # TODO Handle multiple interface parallel scanning
+    # TODO update_alarm in ble for digital input
     # Cf.
     # - https://github.com/victronenergy/dbus-ble-sensors/
     # - https://github.com/victronenergy/node-red-contrib-victron/blob/master/src/nodes/victron-virtual.js
@@ -96,7 +97,7 @@ class DbusBleSensors(object):
             # Remove adapter
             self._dbus_ble_service.remove_ble_adapter(name)
             self._adapters.remove(name)
-            logging.info(f"{name}: Adapter removed")
+            logging.info(f"{name}: adapter removed")
 
     async def _scan(self, adapter: str):
         def _scan_callback(device, advertisement_data):
@@ -109,7 +110,7 @@ class DbusBleSensors(object):
             plog = f"{dev_mac} - {dev_name}:"
             logging.debug(f"{plog} received advertisement '{advertisement_data}'")
             if advertisement_data.manufacturer_data is None or len(advertisement_data.manufacturer_data) < 1:
-                logging.debug(f"{plog} ignoring advertisements without manufacturer data")
+                logging.info(f"{plog} ignoring device without manufacturer data")
                 self._ignored_mac.append(dev_mac)
                 return
 
@@ -119,12 +120,12 @@ class DbusBleSensors(object):
                 if dev_mac not in self._known_mac.keys():
                     device_class = BleDevice.DEVICE_CLASSES.get(man_id, None)
                     if device_class is None:
-                        logging.debug(f"{plog} ignoring manufacturer '{man_id}' without a configuration class")
+                        logging.info(f"{plog} ignoring, no device configuration class for manufacturer '{man_id}'")
                         self._ignored_mac.append(dev_mac)
                         return
 
                     # Run device specific parsing
-                    logging.debug(f"{plog} initializing device class {device_class}")
+                    logging.info(f"{plog} initializing device with class {device_class}")
                     dev_instance = device_class(dev_mac, dev_name)
                     dev_instance.configure(man_data)
                     dev_instance.init()
@@ -136,7 +137,7 @@ class DbusBleSensors(object):
                 logging.debug(f"{plog} starting manufacturer data analysis")
                 dev_instance.handle_mfg(man_data)
 
-        logging.info(f"{adapter}: Scanning ...")
+        logging.debug(f"{adapter}: Scanning ...")
         try:
             await bleak.BleakScanner.discover(
                 timeout=SCAN_TIMEOUT,
@@ -144,9 +145,9 @@ class DbusBleSensors(object):
                 return_adv=True,
                 detection_callback=_scan_callback
             )
-            logging.info(f"{adapter}: Scan finished")
-        except Exception as e:
-            logging.error(f"{adapter}: Scan error: {e}")
+            logging.debug(f"{adapter}: Scan finished")
+        except Exception:
+            logging.exception(f"{adapter}: Scan error")
 
     async def scan_loop(self):
         while True:
@@ -154,22 +155,20 @@ class DbusBleSensors(object):
             await asyncio.gather(*scan_tasks)
 
             if self._dbus_ble_service.get_continuous_scanning():
-                logging.info(f"{self._adapters}: continuous scan on, restarting scan immediately")
+                logging.debug(f"{self._adapters}: continuous scan on, restarting scan immediately")
             else:
-                logging.info(f"{self._adapters}: continuous scan off, pausing for {SCAN_SLEEP} seconds")
+                logging.debug(f"{self._adapters}: continuous scan off, pausing for {SCAN_SLEEP} seconds")
                 await asyncio.sleep(SCAN_SLEEP)
 
 
 def main():
     parser = ArgumentParser(description=sys.argv[0])
     parser.add_argument('--debug', '-d', help='Turn on debug logging', default=False, action='store_true')
-    parser.add_argument('--noscan', '-n', help='Turn off scanning', default=False, action='store_true')
     args = parser.parse_args()
-    logger = setup_logging(args.debug)
+    setup_logging(args.debug)
     if args.debug:
         # Mute overly verbose libraries
         logging.getLogger("bleak").setLevel(logging.INFO)
-    logging.info(f"Starting with arguments: --debug={args.debug} --noscan={args.noscan}")
 
     # Init gbulb, configure GLib and integrate asyncio in it
     gbulb.install()
@@ -180,11 +179,8 @@ def main():
 
     mainloop = asyncio.new_event_loop()
     asyncio.set_event_loop(mainloop)
-    if not args.noscan:
-        logging.info('Starting scan loop')
-        asyncio.get_event_loop().create_task(pvac_output.scan_loop())
-    else:
-        logging.info('Skipping scan loop')
+    asyncio.get_event_loop().create_task(pvac_output.scan_loop())
+    logging.info('Starting scanning')
     mainloop.run_forever()
 
 
