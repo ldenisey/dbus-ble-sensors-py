@@ -101,9 +101,10 @@ class BleDevice(object):
             self.init_device_dbus_service(dbus_service)
         logging.debug(f"{self._plog} initialized")
 
-    def update(self, dbus_service: DbusDeviceService, sensor_data: dict):
+    def update_data(self, dbus_service: DbusDeviceService, sensor_data: dict):
         """
-        Optional overload, executed after data parsing to update values from settings or custom methods.
+        Optional overload. Executed after the data parsing, before updating them on service Dbus.
+        Can be used to add or modify data depending on settings or custom methods.
         """
         pass
 
@@ -124,11 +125,11 @@ class BleDevice(object):
             service_data = sensor_data[dbus_service.ble_role.get_name()]
 
             # Update sensor data from update callbacks
-            dbus_service.ble_role.update(dbus_service, service_data)
-            self.update(dbus_service, service_data)
-
-            # Update sensors data
+            dbus_service.ble_role.update_data(dbus_service, service_data)
             self.update_data(dbus_service, service_data)
+
+            # Update Dbus with new data
+            self.update_dbus_data(dbus_service, service_data)
 
             # Update alarm states
             for alarm in dbus_service.ble_role.info['alarms']:
@@ -381,7 +382,7 @@ class BleDevice(object):
                 values[role][(reg['name'])] = value
         return values
 
-    def update_data(self, dbus_service: DbusDeviceService, sensor_data: dict):
+    def update_dbus_data(self, dbus_service: DbusDeviceService, sensor_data: dict):
         for name, value in sensor_data.items():
             dbus_service.set_value(name, value)
 

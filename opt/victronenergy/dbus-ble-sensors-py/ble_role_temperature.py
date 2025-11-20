@@ -45,7 +45,7 @@ class BleRoleTemperature(BleRole):
         )
         self._raw_temp = 0
 
-    def update(self, dbus_service, sensor_data: dict):
+    def update_data(self, dbus_service, sensor_data: dict):
         # Keeping track of sensor latest value for multiple offset updates use case
         self._raw_temp = sensor_data['Temperature']
 

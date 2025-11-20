@@ -1,5 +1,4 @@
 import os
-import sys
 import inspect
 import logging
 import importlib.util
@@ -23,9 +22,10 @@ class BleRole(object):
         """
         self._plog = f"{self.info['name']}:"
 
-    def update(self, dbus_service, sensor_data: dict):
+    def update_data(self, dbus_service, sensor_data: dict):
         """
-        Optional method executed at advertising reception, after the data have been parsed to update values and settings.
+        Optional overload. Executed after the data parsing, before updating them on service Dbus.
+        Can be used to add or modify data depending on settings or custom methods.
         """
         pass
 

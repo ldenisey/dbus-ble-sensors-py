@@ -129,7 +129,7 @@ class BleRoleDigitalInput(BleRole):
         count = (int(dbus_service.get_value('Count')) + 1) % self.MAXCOUNT
         dbus_service.set_value('Count', count)
 
-    def update(self, dbus_service, sensor_data: dict):
+    def update_data(self, dbus_service, sensor_data: dict):
         input_state = sensor_data['InputState']
         dbus_service.set_value('Alarm', self._get_alarm(dbus_service, input_state))
         dbus_service.set_value('State', self._get_state(dbus_service, input_state))

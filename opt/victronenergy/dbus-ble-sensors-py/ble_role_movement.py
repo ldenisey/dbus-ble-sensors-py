@@ -41,6 +41,6 @@ class BleRoleDigitalInput(BleRole):
             return 2 * movement_state
         return 0
 
-    def update(self, dbus_service, sensor_data: dict):
+    def update_data(self, dbus_service, sensor_data: dict):
         dbus_service.set_value('Alarm', self._get_alarm(dbus_service, sensor_data))
         self._count = sensor_data['MovementCount']
