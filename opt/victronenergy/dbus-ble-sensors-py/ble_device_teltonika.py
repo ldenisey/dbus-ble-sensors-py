@@ -124,6 +124,7 @@ class BleDeviceTeltonika(BleDevice):
                 'offset': offset,
                 'shift': 7,
                 'bits': 1,
+                'roles': ['movement'],
             })
             self.info['regs'].append({
                 'name': 'MovementCount',
@@ -131,7 +132,9 @@ class BleDeviceTeltonika(BleDevice):
                 'offset': offset,
                 'mask': 0x7FFF,
                 'flags': ['REG_FLAG_BIG_ENDIAN'],
+                'roles': ['movement'],
             })
+            self.info['roles'].append('movement')
             offset = offset + 2
 
         flag_angle = self.load_int({
@@ -143,18 +146,21 @@ class BleDeviceTeltonika(BleDevice):
         }, manufacturer_data)
         if flag_angle:
             self.info['regs'].append({
-                'name': 'AnglePitch',
+                'name': 'Pitch',
                 'type': dbus.types.Byte,
                 'offset': offset,
                 'xlate': 'byteToSignedInt',
+                'roles': ['movement'],
             })
             offset = offset + 1
             self.info['regs'].append({
-                'name': 'AngleRoll',
+                'name': 'Roll',
                 'type': dbus.types.Int16,
                 'offset': 8,
                 'flags': ['REG_FLAG_BIG_ENDIAN'],
+                'roles': ['movement'],
             })
+            self.info['roles'].append('movement')
             offset = offset + 2
 
         flag_bat = self.load_int({

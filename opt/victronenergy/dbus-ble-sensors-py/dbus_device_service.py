@@ -78,11 +78,6 @@ class DbusDeviceService(object):
             1
         )
         self._dbus_service.add_path("/Status", 0, writeable=True)
-        self._dbus_service.add_path("/Devices/0/ProductId",
-                                    self._ble_device.info['product_id'], writeable=False)  # Is this needed ?
-        self._dbus_service.add_path("/Devices/0/DeviceInstance", self._device_instance,
-                                    writeable=False)  # Is this needed ?
-        # veItemCreateProductId(droot, self._ble_device.info['product_id']);  #TODO Does it do more than adding a product_id item ?
 
     def connect(self):
         if self.is_connected():
